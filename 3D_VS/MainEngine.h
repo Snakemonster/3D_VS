@@ -15,9 +15,8 @@ private:
 	void update();
 	void clearObj();
 
-
-	GLFWwindow* window;
 	static void framebufferSizeCallback(GLFWwindow* window, int width, int height);
-	void processInput(GLFWwindow* window) const;
+	static void mouseCallBack(GLFWwindow* windows, double xpos, double ypos);
+	void processInput(GLFWwindow* window, double deltaTime) const;
 };
 #endif
