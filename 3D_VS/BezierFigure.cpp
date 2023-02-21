@@ -16,10 +16,10 @@ BezierFigure::BezierFigure(const std::array<glm::vec3, 16>& pointsBezier, int qu
 
 	std::vector<glm::vec3> colors;
 	for (auto i = 0; i < vertices.size() /3 / 4; ++i) {
-		for (int j = 0; j < vertices.size() / 3 / quality / 4; ++j) colors.emplace_back(0.1f, 0.2f, 1.f);
-		for (int j = 0; j < vertices.size() / 3 / quality / 4; ++j) colors.emplace_back(0.5f, 0.5f, 1.f);
-		for (int j = 0; j < vertices.size() / 3 / quality / 4; ++j) colors.emplace_back(0.f, 0.5f, 0.5f);
-		for (int j = 0; j < vertices.size() / 3 / quality / 4; ++j) colors.emplace_back(0.5f, 1.f, 0.5f);
+		for (int j = 0; j < vertices.size() / 3 / quality / 4; ++j) colors.emplace_back(0.4f, 0.2f, 1.f);
+		for (int j = 0; j < vertices.size() / 3 / quality / 4; ++j) colors.emplace_back(0.7f, 0.9f, 0.2f);
+		for (int j = 0; j < vertices.size() / 3 / quality / 4; ++j) colors.emplace_back(0.2f, 0.3f, 0.4f);
+		for (int j = 0; j < vertices.size() / 3 / quality / 4; ++j) colors.emplace_back(1.0f, 1.f, 0.7f);
 	}
 
 	glGenVertexArrays(1, &VAO);
