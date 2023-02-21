@@ -1,5 +1,6 @@
 #include "MainEngine.h"
 
+#include <array>
 #include <iostream>
 #include <ostream>
 #include <vector>
@@ -7,6 +8,7 @@
 #include <GLFW/glfw3.h>
 #include <glm/ext/matrix_transform.hpp>
 
+#include "BezierFigure.h"
 #include "camera.h"
 #include "shader_handler.h"
 #define GLFW_INCLUDE_NONE
@@ -137,6 +139,7 @@ public:
 
 	void draw(const glm::mat4& projection, const glm::mat4& view) {
 		auto transform = glm::mat4(1.f);
+		transform = glm::translate(transform, glm::vec3(3, 0, 0));
 		transform = rotate(transform, (float)glfwGetTime() * glm::radians(45.f), glm::vec3(0.5, 0, 1.));
 		shader.use();
 		shader.setMat4("projection", projection);
@@ -162,7 +165,7 @@ public:
 //Main work is here
 
 //Camera settings
-Camera camera = Camera(glm::vec3(0.f, 0.f, 3.f));
+Camera camera = Camera(glm::vec3(0.f, 1.f, 10.f));
 bool firstMouse = true;
 float lastX = SRC_WIDTH / 2.f, lastY = SRC_HEIGHT / 2.f;
 
@@ -170,14 +173,68 @@ float lastX = SRC_WIDTH / 2.f, lastY = SRC_HEIGHT / 2.f;
 struct FObj {
 
 	Cube* cube;
-
+	BezierFigure* BezierFigure1;
+	BezierFigure* BezierFigure2;
 	~FObj() {
 		delete cube;
+		delete BezierFigure1;
+		delete BezierFigure2;
 	}
 };
 
 FObj* MainEngine::start() {
-	const auto Obj = new FObj{new Cube};
+	std::array<glm::vec3, 16> points1 = {
+		//A
+		glm::vec3(0.f,13.f,0.f),
+		glm::vec3(0.f,2.f,0.f),
+		glm::vec3(0.f,12.f, 19.f),
+		glm::vec3(0.f,0.f,25.f),
+		
+		//B
+		glm::vec3(4.5f, 7.f, 0.f),
+		glm::vec3(2.f, 2.f, 5.f),
+		glm::vec3(5.f, 8.f, 18.f),
+		glm::vec3(0.f,0.f,25.f),
+		
+		//C
+		glm::vec3(8.75f, 6.f, 0.f),
+		glm::vec3(5.f, 1.f, 2.f),
+		glm::vec3(8.f, 5.5f, 14.f),
+		glm::vec3(0.f,0.f,25.f),
+		
+		//D
+		glm::vec3(11.f,0.f, 0.f),
+		glm::vec3(10.f, 0.f, 10.f),
+		glm::vec3(10.f, 0.f, 18.f),
+		glm::vec3(0.f,0.f,25.f),
+	};
+	std::array<glm::vec3, 16> points2 = {
+		//A
+		glm::vec3(0.f,13.f,0.f),
+		glm::vec3(0.f,2.f,0.f),
+		glm::vec3(0.f,12.f, 19.f),
+		glm::vec3(0.f,0.f,25.f),
+
+		//B
+		glm::vec3(-4.5f, 7.f, 0.f),
+		glm::vec3(-2.f, 2.f, 5.f),
+		glm::vec3(-5.f, 8.f, 18.f),
+		glm::vec3(0.f,0.f,25.f),
+
+		//C
+		glm::vec3(-8.75f, 6.f, 0.f),
+		glm::vec3(-5.f, 1.f, 2.f),
+		glm::vec3(-8.f, 5.5f, 14.f),
+		glm::vec3(0.f,0.f,25.f),
+
+		//D
+		glm::vec3(-11.f,0.f, 0.f),
+		glm::vec3(-10.f, 0.f, 10.f),
+		glm::vec3(-10.f, 0.f, 18.f),
+		glm::vec3(0.f,0.f,25.f),
+	};
+	
+	const auto Obj = new FObj{new Cube, new BezierFigure(points1, 100), new BezierFigure(points2, 100)};
 	return Obj;
 }
 
@@ -185,6 +242,8 @@ void MainEngine::update() {
 	const glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SRC_WIDTH / (float)SRC_HEIGHT, 0.1f, 100.0f);
 	const glm::mat4 view = camera.GetViewMatrix();
 	obj->cube->draw(projection, view);
+	obj->BezierFigure1->draw(projection, view);
+	obj->BezierFigure2->draw(projection, view);
 }
 
 void MainEngine::clearObj() {

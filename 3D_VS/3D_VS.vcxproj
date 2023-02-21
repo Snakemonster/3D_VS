@@ -133,11 +133,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="BezierFigure.cpp" />
     <ClCompile Include="glad.c" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MainEngine.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BezierFigure.h" />
     <ClInclude Include="camera.h" />
     <ClInclude Include="MainEngine.h" />
     <ClInclude Include="shader_handler.h" />
