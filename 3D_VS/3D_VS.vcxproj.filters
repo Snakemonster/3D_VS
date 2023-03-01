@@ -52,5 +52,11 @@
     <None Include="fragment.glsl">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="vertex_light.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="fragment_light.glsl">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -1,14 +1,21 @@
 #version 450 core
+layout(location = 0) in vec3 position;
+layout(location = 1) in vec3 normals;
 
-layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec3 aColor;
-out vec3 ourColor;
+out vec3 FragPos;
+out vec3 Normal;
+out vec3 LightPos;
 
+uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
-uniform mat4 transform;
+uniform mat3 matrixNormals;
+uniform vec3 lightPos;
 
-void main() {
-    gl_Position = projection * view * transform * vec4(aPos, 1.0);
-    ourColor = aColor;
-};
+
+void main(){
+    gl_Position = projection * view * model * vec4(position, 1.0);
+    FragPos = vec3(view * model * vec4(position, 1.0));
+    Normal = matrixNormals * normals;
+    LightPos = vec3(view * vec4(lightPos, 1.0));
+}

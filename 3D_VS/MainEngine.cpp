@@ -69,66 +69,207 @@ int MainEngine::launch() {
 }
 
 //Additional classes **********************************************************************************************
-class Cube {
-private:
+class BaseCube {
+protected:
 	std::vector<float> vertices;
 	std::vector<unsigned int> indices;
-	unsigned int VAO, EBO;
-	unsigned int VBO[2];
+	unsigned int VAO, VBO, EBO;
 	Shader shader;
 public:
-	Cube() : shader(Shader("vertex.glsl", "fragment.glsl")) {
-		std::vector<glm::vec3> colors = {
-		glm::vec3(1.0f, 0.0f, 0.0f),
-		glm::vec3(1.0f, 0.0f, 0.0f),
-		glm::vec3(1.0f, 0.0f, 0.0f),
-
-		glm::vec3(0.0f, 1.0f, 0.0f),
-		glm::vec3(0.0f, 1.0f, 0.0f),
-
-		glm::vec3(0.0f, 0.0f, 1.0f),
-		glm::vec3(0.0f, 0.0f, 1.0f),
-		glm::vec3(0.0f, 0.0f, 1.0f),
-		};
-
+	BaseCube(Shader& shader) : shader(shader) {
 		vertices = {
-			-0.5f, -0.5f, -0.5f, // vertex 0
-			-0.5f, -0.5f, 0.5f, // vertex 1
-			-0.5f, 0.5f, -0.5f, // vertex 2
-			-0.5f, 0.5f, 0.5f, // vertex 3
-			0.5f, -0.5f, -0.5f, // vertex 4
-			0.5f, -0.5f, 0.5f, // vertex 5
-			0.5f, 0.5f, -0.5f, // vertex 6
-			0.5f, 0.5f, 0.5f // vertex 7
+			-0.5f, -0.5f, 0.5f, // bottom-left
+			0.5f, -0.5f, 0.5f, // bottom-right
+			0.5f, 0.5f, 0.5f, // top-right
+			-0.5f, 0.5f, 0.5f, // top-left
+
+			// Back face
+			-0.5f, -0.5f, -0.5f, // bottom-left
+			0.5f, -0.5f, -0.5f, // bottom-right
+			0.5f, 0.5f, -0.5f, // top-right
+			-0.5f, 0.5f, -0.5f // top-left
 		};
 
 		indices = {
-			0, 1, 2, // front
-			1, 3, 2,
-			4, 0, 6, // back
-			6, 0, 2,
-			5, 4, 7, // right
-			4, 6, 7,
-			1, 5, 3, // left
-			5, 7, 3,
-			2, 3, 6, // top
-			3, 7, 6,
-			1, 0, 5, // bottom
-			0, 4, 5
+			// Front face
+			0, 1, 2,
+			2, 3, 0,
+
+			// Top face
+			3, 2, 6,
+			6, 7, 3,
+
+			// Back face
+			7, 6, 5,
+			5, 4, 7,
+
+			// Bottom face
+			4, 5, 1,
+			1, 0, 4,
+
+			// Left face
+			0, 3, 7,
+			7, 4, 0,
+
+			// Right face
+			1, 5, 6,
+			6, 2, 1
 		};
 
 		glGenVertexArrays(1, &VAO);
 		glBindVertexArray(VAO);
 
-		glGenBuffers(1, &VBO[0]);
-		glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);
+		glGenBuffers(1, &VBO);
+		glBindBuffer(GL_ARRAY_BUFFER, VBO);
 		glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 		glEnableVertexAttribArray(0);
 
-		glGenBuffers(1, &VBO[1]);
-		glBindBuffer(GL_ARRAY_BUFFER, VBO[1]);
-		glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(glm::vec3), colors.data(), GL_STATIC_DRAW);
+		glGenBuffers(1, &EBO);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+	}
+
+	virtual ~BaseCube() {
+		glDeleteVertexArrays(1, &VAO);
+		glDeleteBuffers(1, &VAO);
+		glDeleteBuffers(1, &EBO);
+		glDeleteBuffers(1, &VBO);
+	}
+
+	virtual void draw(const glm::mat4& projection, const glm::mat4& view) = 0;
+};
+
+
+class LightCube : public BaseCube {
+protected:
+	glm::vec3 pos;
+
+public:
+	LightCube(Shader shader = Shader("vertex_light.glsl", "fragment_light.glsl")) : BaseCube(shader) {
+		pos = glm::vec3(0.f, 5.f, 0.f);
+	}
+
+	glm::vec3 getPos() const {
+		return pos;
+	}
+
+	virtual void draw(const glm::mat4& projection, const glm::mat4& view) override {
+		pos.x = static_cast<float>(sin(glfwGetTime()) * 4);
+		pos.y = static_cast<float>(sin(glfwGetTime() * 2) * cos(glfwGetTime()) * 2);
+		pos.z = static_cast<float>(-cos(glfwGetTime()) * 4);
+
+		auto transform = glm::mat4(1.f);
+		transform = glm::translate(transform, pos);
+		transform = glm::scale(transform, glm::vec3(0.2f));
+
+		shader.use();
+		shader.setMat4("projection", projection);
+		shader.setMat4("view", view);
+		shader.setMat4("model", transform);
+		glBindVertexArray(VAO);
+		glDrawElements(GL_TRIANGLES, indices.size() * sizeof(unsigned int), GL_UNSIGNED_INT, (void*)0);
+	}
+};
+
+//TODO make this class as child from class BasicCube, because now it independence.
+class Cube /*: public BaseCube*/ {
+protected:
+	unsigned int NBO;
+	std::vector<float> vertices;
+	std::vector<unsigned int> indices;
+	unsigned int VAO, VBO, EBO;
+	Shader shader;
+	LightCube* lightCube;
+public:
+	Cube(LightCube* lightCube, Shader shader = Shader("vertex.glsl", "fragment.glsl")) : lightCube(lightCube), shader(shader)/*: BaseCube(shader)*/ {
+		vertices = {
+			// Front face
+			-0.5f, -0.5f,  0.5f,
+			 0.5f, -0.5f,  0.5f,
+			 0.5f,  0.5f,  0.5f,
+			-0.5f,  0.5f,  0.5f,
+			// Back face
+			-0.5f, -0.5f, -0.5f,
+			-0.5f,  0.5f, -0.5f,
+			 0.5f,  0.5f, -0.5f,
+			 0.5f, -0.5f, -0.5f,
+			 // Left face
+			-0.5f, -0.5f,  0.5f,
+			-0.5f,  0.5f,  0.5f,
+			-0.5f,  0.5f, -0.5f,
+			-0.5f, -0.5f, -0.5f,
+			// Right face
+			 0.5f, -0.5f,  0.5f,
+			 0.5f, -0.5f, -0.5f,
+			 0.5f,  0.5f, -0.5f,
+			 0.5f,  0.5f,  0.5f,
+			// Top face
+			-0.5f,  0.5f,  0.5f,
+			 0.5f,  0.5f,  0.5f,			 
+			 0.5f,  0.5f, -0.5f,
+			-0.5f,  0.5f, -0.5f,
+			// Bottom face
+			-0.5f, -0.5f,  0.5f,
+			-0.5f, -0.5f, -0.5f,
+			 0.5f, -0.5f, -0.5f,
+			 0.5f, -0.5f,  0.5f,
+		};
+
+		indices = {
+			0,  1,  2,      2,  3,  0,    // Front face
+			4,  5,  6,      6,  7,  4,    // Back face
+			8,  9,  10,     10, 11, 8,    // Top face
+			12, 13, 14,     14, 15, 12,   // Bottom face
+			16, 17, 18,     18, 19, 16,   // Right face
+			20, 21, 22,     22, 23, 20,   // Left face
+		};
+
+		std::vector<float> normals = {
+			//front
+			0.0f, 0.0f, 1.0f,
+			0.0f, 0.0f, 1.0f,
+			0.0f, 0.0f, 1.0f,
+			0.0f, 0.0f, 1.0f,
+			//back
+			0.0f, 0.0f, -1.0f,
+			0.0f, 0.0f, -1.0f,
+			0.0f, 0.0f, -1.0f,
+			0.0f, 0.0f, -1.0f,
+			//left
+			-1.0f, 0.0f, 0.0f,
+			-1.0f, 0.0f, 0.0f,
+			-1.0f, 0.0f, 0.0f,
+			-1.0f, 0.0f, 0.0f,
+			//right
+			1.0f, 0.0f, 0.0f,
+			1.0f, 0.0f, 0.0f,
+			1.0f, 0.0f, 0.0f,
+			1.0f, 0.0f, 0.0f,
+			//top
+			0.0f, 1.0f, 0.0f,
+			0.0f, 1.0f, 0.0f,
+			0.0f, 1.0f, 0.0f,
+			0.0f, 1.0f, 0.0f,
+			//bottom
+			0.0f, -1.0f, 0.0f,
+			0.0f, -1.0f, 0.0f,
+			0.0f, -1.0f, 0.0f,
+			0.0f, -1.0f, 0.0f,
+		};
+
+		glGenVertexArrays(1, &VAO);
+		glBindVertexArray(VAO);
+
+		glGenBuffers(1, &VBO);
+		glBindBuffer(GL_ARRAY_BUFFER, VBO);
+		glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+		glEnableVertexAttribArray(0);
+
+		glGenBuffers(1, &NBO);
+		glBindBuffer(GL_ARRAY_BUFFER, NBO);
+		glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(float), normals.data(), GL_STATIC_DRAW);
 		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 		glEnableVertexAttribArray(1);
 
@@ -137,26 +278,28 @@ public:
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
 	}
 
-	void draw(const glm::mat4& projection, const glm::mat4& view) {
+	virtual void draw(const glm::mat4& projection, const glm::mat4& view) /*override*/ {
 		auto transform = glm::mat4(1.f);
 		transform = glm::translate(transform, glm::vec3(3, 0, 0));
-		transform = rotate(transform, (float)glfwGetTime() * glm::radians(45.f), glm::vec3(0.5, 0, 1.));
+		transform = rotate(transform, 0.5f * (float)glfwGetTime() * glm::radians(45.f), glm::vec3(0.5, 0.3, 1.));
 		shader.use();
-		shader.setMat4("projection", projection);
+		shader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
+		shader.setVec3("objectColor", 1.0f, 0.2f, 0.7f);
+
+		shader.setMat4("model", transform);
 		shader.setMat4("view", view);
-		shader.setMat4("transform", transform);
+		shader.setMat4("projection", projection);
+		shader.setMat3("matrixNormals", glm::mat3(glm::transpose(glm::inverse(view * transform))));
+		shader.setVec3("lightPos", lightCube->getPos());
 		glBindVertexArray(VAO);
-		glDrawElements(GL_TRIANGLES, indices.size() * sizeof(unsigned int), GL_UNSIGNED_INT, (void*)0);
+		glDrawElements(GL_TRIANGLES, indices.size() * sizeof(unsigned int), GL_UNSIGNED_INT, 0);
 	}
-	
-	~Cube() {
-		glDeleteVertexArrays(1, &VAO);
-		glDeleteBuffers(1, &VAO);
-		glDeleteBuffers(1, &EBO);
-		glDeleteBuffers(1, &VBO[0]);
-		glDeleteBuffers(1, &VBO[1]);
+
+	virtual ~Cube() {
+		glDeleteBuffers(1, &NBO);
 	}
 };
+
 //Additional classes **********************************************************************************************
 
 
@@ -171,79 +314,81 @@ float lastX = SRC_WIDTH / 2.f, lastY = SRC_HEIGHT / 2.f;
 
 
 struct FObj {
-
 	Cube* cube;
-	BezierFigure* BezierFigure1;
-	BezierFigure* BezierFigure2;
+	LightCube* lightCube;
+	// BezierFigure* BezierFigure1;
+	// BezierFigure* BezierFigure2;
 	~FObj() {
 		delete cube;
-		delete BezierFigure1;
-		delete BezierFigure2;
+		delete lightCube;
+		// delete BezierFigure1;
+		// delete BezierFigure2;
 	}
 };
 
 FObj* MainEngine::start() {
 	std::array<glm::vec3, 16> points1 = {
 		//A
-		glm::vec3(0.f,13.f,0.f),
-		glm::vec3(0.f,2.f,0.f),
-		glm::vec3(0.f,12.f, 19.f),
-		glm::vec3(0.f,0.f,25.f),
-		
+		glm::vec3(0.f, 13.f, 0.f),
+		glm::vec3(0.f, 2.f, 0.f),
+		glm::vec3(0.f, 12.f, 19.f),
+		glm::vec3(0.f, 0.f, 25.f),
+
 		//B
 		glm::vec3(4.5f, 7.f, 0.f),
 		glm::vec3(2.f, 2.f, 5.f),
 		glm::vec3(5.f, 8.f, 18.f),
-		glm::vec3(0.f,0.f,25.f),
-		
+		glm::vec3(0.f, 0.f, 25.f),
+
 		//C
 		glm::vec3(8.75f, 6.f, 0.f),
 		glm::vec3(5.f, 1.f, 2.f),
 		glm::vec3(8.f, 5.5f, 14.f),
-		glm::vec3(0.f,0.f,25.f),
-		
+		glm::vec3(0.f, 0.f, 25.f),
+
 		//D
-		glm::vec3(11.f,0.f, 0.f),
+		glm::vec3(11.f, 0.f, 0.f),
 		glm::vec3(10.f, 0.f, 10.f),
 		glm::vec3(10.f, 0.f, 18.f),
-		glm::vec3(0.f,0.f,25.f),
+		glm::vec3(0.f, 0.f, 25.f),
 	};
 	std::array<glm::vec3, 16> points2 = {
 		//A
-		glm::vec3(0.f,13.f,0.f),
-		glm::vec3(0.f,2.f,0.f),
-		glm::vec3(0.f,12.f, 19.f),
-		glm::vec3(0.f,0.f,25.f),
+		glm::vec3(0.f, 13.f, 0.f),
+		glm::vec3(0.f, 2.f, 0.f),
+		glm::vec3(0.f, 12.f, 19.f),
+		glm::vec3(0.f, 0.f, 25.f),
 
 		//B
 		glm::vec3(-4.5f, 7.f, 0.f),
 		glm::vec3(-2.f, 2.f, 5.f),
 		glm::vec3(-5.f, 8.f, 18.f),
-		glm::vec3(0.f,0.f,25.f),
+		glm::vec3(0.f, 0.f, 25.f),
 
 		//C
 		glm::vec3(-8.75f, 6.f, 0.f),
 		glm::vec3(-5.f, 1.f, 2.f),
 		glm::vec3(-8.f, 5.5f, 14.f),
-		glm::vec3(0.f,0.f,25.f),
+		glm::vec3(0.f, 0.f, 25.f),
 
 		//D
-		glm::vec3(-11.f,0.f, 0.f),
+		glm::vec3(-11.f, 0.f, 0.f),
 		glm::vec3(-10.f, 0.f, 10.f),
 		glm::vec3(-10.f, 0.f, 18.f),
-		glm::vec3(0.f,0.f,25.f),
+		glm::vec3(0.f, 0.f, 25.f),
 	};
-	
-	const auto Obj = new FObj{new Cube, new BezierFigure(points1, 100), new BezierFigure(points2, 100)};
-	return Obj;
+	auto light = new LightCube;
+	return new FObj{new Cube(light), light,/* new BezierFigure(points1, 100), new BezierFigure(points2, 100)*/};
 }
 
 void MainEngine::update() {
-	const glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SRC_WIDTH / (float)SRC_HEIGHT, 0.1f, 100.0f);
+	const glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SRC_WIDTH / (float)SRC_HEIGHT, 0.1f,
+	                                              100.0f);
 	const glm::mat4 view = camera.GetViewMatrix();
+	obj->lightCube->draw(projection, view);
 	obj->cube->draw(projection, view);
-	obj->BezierFigure1->draw(projection, view);
-	obj->BezierFigure2->draw(projection, view);
+	// obj->BezierFigure1->draw(projection, view);
+	// obj->BezierFigure2->draw(projection, view);
 }
 
 void MainEngine::clearObj() {
@@ -277,6 +422,7 @@ void MainEngine::mouseCallBack(GLFWwindow* windows, double xposIn, double yposIn
 
 	camera.ProcessMouseMovement(xoffset, yoffset);
 }
+
 //end of callbacks
 
 void MainEngine::processInput(GLFWwindow* window, double deltaTime) const {
