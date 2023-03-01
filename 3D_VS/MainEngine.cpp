@@ -75,8 +75,8 @@ protected:
 	std::vector<unsigned int> indices;
 	unsigned int VAO, VBO, EBO;
 	Shader shader;
-public:
-	BaseCube(Shader& shader) : shader(shader) {
+
+	void initBaseCube() {
 		vertices = {
 			-0.5f, -0.5f, 0.5f, // bottom-left
 			0.5f, -0.5f, 0.5f, // bottom-right
@@ -130,6 +130,9 @@ public:
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
 	}
 
+public:
+	BaseCube(Shader& shader) : shader(shader) {	}
+
 	virtual ~BaseCube() {
 		glDeleteVertexArrays(1, &VAO);
 		glDeleteBuffers(1, &VAO);
@@ -147,6 +150,7 @@ protected:
 
 public:
 	LightCube(Shader shader = Shader("vertex_light.glsl", "fragment_light.glsl")) : BaseCube(shader) {
+		initBaseCube();
 		pos = glm::vec3(0.f, 5.f, 0.f);
 	}
 
@@ -172,17 +176,12 @@ public:
 	}
 };
 
-//TODO make this class as child from class BasicCube, because now it independence.
-class Cube /*: public BaseCube*/ {
+class Cube : public BaseCube {
 protected:
 	unsigned int NBO;
-	std::vector<float> vertices;
-	std::vector<unsigned int> indices;
-	unsigned int VAO, VBO, EBO;
-	Shader shader;
 	LightCube* lightCube;
 public:
-	Cube(LightCube* lightCube, Shader shader = Shader("vertex.glsl", "fragment.glsl")) : lightCube(lightCube), shader(shader)/*: BaseCube(shader)*/ {
+	Cube(LightCube* lightCube, Shader shader = Shader("vertex.glsl", "fragment.glsl")) : BaseCube(shader), lightCube(lightCube) {
 		vertices = {
 			// Front face
 			-0.5f, -0.5f,  0.5f,
@@ -278,7 +277,7 @@ public:
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
 	}
 
-	virtual void draw(const glm::mat4& projection, const glm::mat4& view) /*override*/ {
+	void draw(const glm::mat4& projection, const glm::mat4& view) override {
 		auto transform = glm::mat4(1.f);
 		transform = glm::translate(transform, glm::vec3(3, 0, 0));
 		transform = rotate(transform, 0.5f * (float)glfwGetTime() * glm::radians(45.f), glm::vec3(0.5, 0.3, 1.));
