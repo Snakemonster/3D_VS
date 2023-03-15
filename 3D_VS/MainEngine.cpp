@@ -151,7 +151,7 @@ protected:
 public:
 	LightCube(Shader shader = Shader("vertex_light.glsl", "fragment_light.glsl")) : BaseCube(shader) {
 		initBaseCube();
-		pos = glm::vec3(0.f, 5.f, 0.f);
+		pos = glm::vec3(0.f, 2.f, 0.f);
 	}
 
 	glm::vec3 getPos() const {
@@ -159,6 +159,7 @@ public:
 	}
 
 	virtual void draw(const glm::mat4& projection, const glm::mat4& view) override {
+		shader.use();
 		pos.x = static_cast<float>(sin(glfwGetTime()) * 4);
 		pos.y = static_cast<float>(sin(glfwGetTime() * 2) * cos(glfwGetTime()) * 2);
 		pos.z = static_cast<float>(-cos(glfwGetTime()) * 4);
@@ -166,11 +167,10 @@ public:
 		auto transform = glm::mat4(1.f);
 		transform = glm::translate(transform, pos);
 		transform = glm::scale(transform, glm::vec3(0.2f));
-
-		shader.use();
+		shader.setMat4("model", transform);
 		shader.setMat4("projection", projection);
 		shader.setMat4("view", view);
-		shader.setMat4("model", transform);
+		
 		glBindVertexArray(VAO);
 		glDrawElements(GL_TRIANGLES, indices.size() * sizeof(unsigned int), GL_UNSIGNED_INT, (void*)0);
 	}
@@ -223,7 +223,7 @@ public:
 			16, 17, 18,     18, 19, 16,   // Right face
 			20, 21, 22,     22, 23, 20,   // Left face
 		};
-
+		
 		std::vector<float> normals = {
 			//front
 			0.0f, 0.0f, 1.0f,
@@ -271,25 +271,35 @@ public:
 		glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(float), normals.data(), GL_STATIC_DRAW);
 		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 		glEnableVertexAttribArray(1);
-
+		
 		glGenBuffers(1, &EBO);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
 	}
 
 	void draw(const glm::mat4& projection, const glm::mat4& view) override {
+		shader.use();
+
 		auto transform = glm::mat4(1.f);
 		transform = glm::translate(transform, glm::vec3(3, 0, 0));
-		transform = rotate(transform, 0.5f * (float)glfwGetTime() * glm::radians(45.f), glm::vec3(0.5, 0.3, 1.));
-		shader.use();
-		shader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
-		shader.setVec3("objectColor", 1.0f, 0.2f, 0.7f);
+		transform = rotate(transform, 0.5f * (float)glfwGetTime() * glm::radians(45.f), glm::vec3(1.0, 0.0, 0.0));
 
 		shader.setMat4("model", transform);
 		shader.setMat4("view", view);
 		shader.setMat4("projection", projection);
 		shader.setMat3("matrixNormals", glm::mat3(glm::transpose(glm::inverse(view * transform))));
-		shader.setVec3("lightPos", lightCube->getPos());
+
+		shader.setVec3("material.ambient", 0.752f, 0.607f, 0.227f);
+		shader.setVec3("material.diffuse", 0.247f, 0.1995f, 0.075f);
+		shader.setVec3("material.specular", 0.628f, 0.556f, 0.366f);
+		shader.setFloat("material.shininess", 0.4f * 128);
+
+		shader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
+		shader.setVec3("light.ambient", 1.0f, 1.0f, 1.0f);
+		shader.setVec3("light.diffuse", 1.0f, 1.0f, 1.0f);
+		shader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
+		shader.setVec3("light.position", lightCube->getPos());
+
 		glBindVertexArray(VAO);
 		glDrawElements(GL_TRIANGLES, indices.size() * sizeof(unsigned int), GL_UNSIGNED_INT, 0);
 	}
