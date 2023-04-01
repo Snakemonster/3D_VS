@@ -8,12 +8,13 @@ public:
 	BezierFigure(const std::array<glm::vec3, 16>& pointsBezier, int quality);
 	~BezierFigure();
 
-	void draw(const glm::mat4& projection, const glm::mat4& view);
+	void draw(const glm::mat4& projection, const glm::mat4& view, const glm::vec3& lightpos);
 
 private:
 	std::vector<float> vertices;
 	std::vector<unsigned int> indices;
-	unsigned int VAO{}, VBO[2]{}, EBO{};
+	std::vector<float> normals;
+	unsigned int VAO{}, VBO{}, EBO{}, NBO{};
 	const int quality;
 	Shader shader;
 

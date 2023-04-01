@@ -14,7 +14,7 @@ uniform mat3 matrixNormals;
 
 void main(){
     gl_Position = projection * view * model * vec4(position, 1.0);
-    FragPos = vec3(view * model* vec4(position, 1.0));
+    FragPos = vec3(view * model * vec4(position, 1.0));
     Normal = matrixNormals * normals;
     View = view;
 }

@@ -7,6 +7,8 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/ext/matrix_transform.hpp>
+#include <glm/gtx/string_cast.hpp>
+#include <glm/gtx/normal.hpp>
 
 #include "BezierFigure.h"
 #include "camera.h"
@@ -143,7 +145,6 @@ public:
 	virtual void draw(const glm::mat4& projection, const glm::mat4& view) = 0;
 };
 
-
 class LightCube : public BaseCube {
 protected:
 	glm::vec3 pos;
@@ -160,9 +161,9 @@ public:
 
 	virtual void draw(const glm::mat4& projection, const glm::mat4& view) override {
 		shader.use();
-		pos.x = static_cast<float>(sin(glfwGetTime()) * 4);
-		pos.y = static_cast<float>(sin(glfwGetTime() * 2) * cos(glfwGetTime()) * 2);
-		pos.z = static_cast<float>(-cos(glfwGetTime()) * 4);
+		pos.x = static_cast<float>(sin(glfwGetTime()) * 8);
+		pos.y = static_cast<float>(sin(glfwGetTime() * 2));
+		pos.z = static_cast<float>(-cos(glfwGetTime()) * 8);
 
 		auto transform = glm::mat4(1.f);
 		transform = glm::translate(transform, pos);
@@ -205,7 +206,7 @@ public:
 			 0.5f,  0.5f,  0.5f,
 			// Top face
 			-0.5f,  0.5f,  0.5f,
-			 0.5f,  0.5f,  0.5f,			 
+			 0.5f,  0.5f,  0.5f,
 			 0.5f,  0.5f, -0.5f,
 			-0.5f,  0.5f, -0.5f,
 			// Bottom face
@@ -213,49 +214,35 @@ public:
 			-0.5f, -0.5f, -0.5f,
 			 0.5f, -0.5f, -0.5f,
 			 0.5f, -0.5f,  0.5f,
-		};
+		};		
 
-		indices = {
-			0,  1,  2,      2,  3,  0,    // Front face
-			4,  5,  6,      6,  7,  4,    // Back face
-			8,  9,  10,     10, 11, 8,    // Top face
-			12, 13, 14,     14, 15, 12,   // Bottom face
-			16, 17, 18,     18, 19, 16,   // Right face
-			20, 21, 22,     22, 23, 20,   // Left face
-		};
-		
-		std::vector<float> normals = {
-			//front
-			0.0f, 0.0f, 1.0f,
-			0.0f, 0.0f, 1.0f,
-			0.0f, 0.0f, 1.0f,
-			0.0f, 0.0f, 1.0f,
-			//back
-			0.0f, 0.0f, -1.0f,
-			0.0f, 0.0f, -1.0f,
-			0.0f, 0.0f, -1.0f,
-			0.0f, 0.0f, -1.0f,
-			//left
-			-1.0f, 0.0f, 0.0f,
-			-1.0f, 0.0f, 0.0f,
-			-1.0f, 0.0f, 0.0f,
-			-1.0f, 0.0f, 0.0f,
-			//right
-			1.0f, 0.0f, 0.0f,
-			1.0f, 0.0f, 0.0f,
-			1.0f, 0.0f, 0.0f,
-			1.0f, 0.0f, 0.0f,
-			//top
-			0.0f, 1.0f, 0.0f,
-			0.0f, 1.0f, 0.0f,
-			0.0f, 1.0f, 0.0f,
-			0.0f, 1.0f, 0.0f,
-			//bottom
-			0.0f, -1.0f, 0.0f,
-			0.0f, -1.0f, 0.0f,
-			0.0f, -1.0f, 0.0f,
-			0.0f, -1.0f, 0.0f,
-		};
+		std::vector<glm::vec3> verticesArray;
+		for (int i = 0; i < vertices.size(); i += 3) {
+			auto triangle = glm::vec3(vertices[i], vertices[i + 1], vertices[i + 2]);
+			verticesArray.push_back(triangle);
+		}
+
+		for (int i = 0; i < verticesArray.size(); i += 4) {
+			indices.push_back(i);
+			indices.push_back(i + 1);
+			indices.push_back(i + 2);
+
+			indices.push_back(i + 2);
+			indices.push_back(i + 3);
+			indices.push_back(i);
+		}
+
+		std::vector<float> normals;
+		for (int i = 0; i < indices.size(); i += 3) {
+			glm::vec3 normal = triangleNormal(verticesArray[indices[i]], verticesArray[indices[i+1]], verticesArray[indices[i+2]]);
+			normals.push_back(normal.x);
+			normals.push_back(normal.y);
+			normals.push_back(normal.z);
+			
+			normals.push_back(normal.x);
+			normals.push_back(normal.y);
+			normals.push_back(normal.z);
+		}
 
 		glGenVertexArrays(1, &VAO);
 		glBindVertexArray(VAO);
@@ -278,21 +265,28 @@ public:
 	}
 
 	void draw(const glm::mat4& projection, const glm::mat4& view) override {
-		shader.use();
-
 		auto transform = glm::mat4(1.f);
 		transform = glm::translate(transform, glm::vec3(3, 0, 0));
-		transform = rotate(transform, 0.5f * (float)glfwGetTime() * glm::radians(45.f), glm::vec3(1.0, 0.0, 0.0));
+		// transform = rotate(transform, 0.5f * (float)glfwGetTime() * glm::radians(45.f), glm::vec3(1.0, 0.0, 0.0));
 
+		auto ambient = glm::vec3(0.752f, 0.607f, 0.227f);
+		auto diffuse = glm::vec3(0.247f, 0.1995f, 0.075f);
+		auto specular = glm::vec3(0.628f, 0.556f, 0.366f);
+		auto n = 0.4f * 128;
+		auto Il = 2.5f;
+
+		glm::vec3 Ia_ka = 3.6f * ambient;
+		
+		shader.use();
 		shader.setMat4("model", transform);
 		shader.setMat4("view", view);
 		shader.setMat4("projection", projection);
 		shader.setMat3("matrixNormals", glm::mat3(glm::transpose(glm::inverse(view * transform))));
 
-		shader.setVec3("material.ambient", 0.752f, 0.607f, 0.227f);
-		shader.setVec3("material.diffuse", 0.247f, 0.1995f, 0.075f);
-		shader.setVec3("material.specular", 0.628f, 0.556f, 0.366f);
-		shader.setFloat("material.shininess", 0.4f * 128);
+		shader.setVec3("material.ambient", ambient);
+		shader.setVec3("material.diffuse", diffuse);
+		shader.setVec3("material.specular", specular);
+		shader.setFloat("material.shininess", n);
 
 		shader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
 		shader.setVec3("light.ambient", 1.0f, 1.0f, 1.0f);
@@ -308,7 +302,6 @@ public:
 		glDeleteBuffers(1, &NBO);
 	}
 };
-
 //Additional classes **********************************************************************************************
 
 
@@ -325,13 +318,13 @@ float lastX = SRC_WIDTH / 2.f, lastY = SRC_HEIGHT / 2.f;
 struct FObj {
 	Cube* cube;
 	LightCube* lightCube;
-	// BezierFigure* BezierFigure1;
-	// BezierFigure* BezierFigure2;
+	BezierFigure* BezierFigure1;
+	BezierFigure* BezierFigure2;
 	~FObj() {
 		delete cube;
 		delete lightCube;
-		// delete BezierFigure1;
-		// delete BezierFigure2;
+		delete BezierFigure1;
+		delete BezierFigure2;
 	}
 };
 
@@ -387,17 +380,21 @@ FObj* MainEngine::start() {
 		glm::vec3(0.f, 0.f, 25.f),
 	};
 	auto light = new LightCube;
-	return new FObj{new Cube(light), light,/* new BezierFigure(points1, 100), new BezierFigure(points2, 100)*/};
+	return new FObj {
+		new Cube(light),
+		light,
+		new BezierFigure(points1, 100),
+		new BezierFigure(points2, 100),
+	};
 }
 
 void MainEngine::update() {
-	const glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SRC_WIDTH / (float)SRC_HEIGHT, 0.1f,
-	                                              100.0f);
+	const glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SRC_WIDTH / (float)SRC_HEIGHT, 0.1f, 100.0f);
 	const glm::mat4 view = camera.GetViewMatrix();
 	obj->lightCube->draw(projection, view);
-	obj->cube->draw(projection, view);
-	// obj->BezierFigure1->draw(projection, view);
-	// obj->BezierFigure2->draw(projection, view);
+	// obj->cube->draw(projection, view);
+	obj->BezierFigure1->draw(projection, view, obj->lightCube->getPos());
+	obj->BezierFigure2->draw(projection, view, obj->lightCube->getPos());
 }
 
 void MainEngine::clearObj() {
