@@ -152,6 +152,9 @@
     <None Include="vertex.glsl" />
     <None Include="vertex_light.glsl" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="resources\yellow-wall-texture-with-scratches.jpg" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

@@ -14,7 +14,9 @@ private:
 	std::vector<float> vertices;
 	std::vector<unsigned int> indices;
 	std::vector<float> normals;
-	unsigned int VAO{}, VBO{}, EBO{}, NBO{};
+	std::vector<float> textures;
+	unsigned int VAO{}, VBO{}, EBO{}, NBO{}, TBO{};
+	unsigned int texture;
 	const int quality;
 	Shader shader;
 
