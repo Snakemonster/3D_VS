@@ -18,6 +18,8 @@ BezierFigure::BezierFigure(const std::array<glm::vec3, 16>& pointsBezier, int qu
 	shader(Shader("vertex.glsl", "fragment.glsl")) {
 	generateBezier(pointsBezier);
 
+	position = glm::vec3(0.f);
+
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
 
@@ -78,7 +80,7 @@ BezierFigure::~BezierFigure() {
 
 void BezierFigure::draw(const glm::mat4& projection, const glm::mat4& view, const glm::vec3& lightpos) {
 	auto transform = glm::mat4(1.f);
-	// transform = glm::translate(transform, glm::vec3(-3.f, 0, 0.f));
+	transform = glm::translate(transform, position);
 	transform = glm::scale(transform, glm::vec3(0.2f));
 
 	auto ambient = glm::vec3(0.752f, 0.607f, 0.227f);
@@ -113,6 +115,15 @@ void BezierFigure::draw(const glm::mat4& projection, const glm::mat4& view, cons
 	glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, indices.size() * sizeof(unsigned int), GL_UNSIGNED_INT, (void*)0);
 }
+
+void BezierFigure::setPos(const glm::vec3& pos) {
+	position = pos;
+}
+
+glm::vec3 BezierFigure::getPos() const {
+	return position;
+}
+
 
 
 void BezierFigure::generateBezier(const std::array<glm::vec3, 16>& pointsBezier) {

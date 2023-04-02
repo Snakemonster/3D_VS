@@ -149,8 +149,10 @@
   <ItemGroup>
     <None Include="fragment.glsl" />
     <None Include="fragment_light.glsl" />
+    <None Include="fragment_line.glsl" />
     <None Include="vertex.glsl" />
     <None Include="vertex_light.glsl" />
+    <None Include="vertex_line.glsl" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="resources\yellow-wall-texture-with-scratches.jpg" />

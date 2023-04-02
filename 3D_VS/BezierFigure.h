@@ -9,6 +9,8 @@ public:
 	~BezierFigure();
 
 	void draw(const glm::mat4& projection, const glm::mat4& view, const glm::vec3& lightpos);
+	void setPos(const glm::vec3& pos);
+	glm::vec3 getPos() const;
 
 private:
 	std::vector<float> vertices;
@@ -19,6 +21,8 @@ private:
 	unsigned int texture;
 	const int quality;
 	Shader shader;
+
+	glm::vec3 position;
 
 	void generateBezier(const std::array<glm::vec3, 16>& pointsBezier);
 };

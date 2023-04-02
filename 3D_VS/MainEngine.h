@@ -12,7 +12,7 @@ public:
 private:
 	FObj* obj;
 	FObj* start();
-	void update();
+	void update(double deltaTime);
 	void clearObj();
 
 	static void framebufferSizeCallback(GLFWwindow* window, int width, int height);

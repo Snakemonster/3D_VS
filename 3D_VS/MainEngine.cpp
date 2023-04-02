@@ -47,21 +47,21 @@ int MainEngine::launch() {
 
 	obj = start();
 
+	bool pressed = false;
 	while (!glfwWindowShouldClose(window)) {
 		const auto currentTime = glfwGetTime();
 		deltaTime = currentTime - lastTime;
-		lastTime = currentTime;
-
 		processInput(window, deltaTime);
 
 		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		update();
+		update(deltaTime);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
+		lastTime = currentTime;
 	}
 
 	clearObj();
@@ -302,6 +302,78 @@ public:
 		glDeleteBuffers(1, &NBO);
 	}
 };
+
+class Curve {
+	Shader shader;
+	std::vector<float> vertices;
+	int quality;
+	unsigned int VAO, VBO;
+public:
+	std::vector<glm::vec3> Vertices;
+
+	glm::vec3 getLastPos() const {
+		return Vertices[quality];
+	}
+
+	Curve(int quality) : quality(quality), shader(Shader("vertex_light.glsl", "fragment_line.glsl")) {
+		const std::array<glm::vec3, 4> points = {
+			glm::vec3(0.f, 0.f, 0.f),
+			glm::vec3(-10.f, -6.f, -3.f),
+			glm::vec3(8.f, 10.f, 12.f),
+			glm::vec3(0.f, 5.f, 20.f),
+		};
+
+		auto func = [points](float t) -> glm::vec3 {
+			float b0 = pow(1 - t, 3);
+			float b1 = 3 * t * pow(1 - t, 2);
+			float b2 = 3 * pow(t, 2) * (1 - t);
+			float b3 = pow(t, 3);
+
+			// Calculate the interpolated point
+			glm::vec3 p = b0 * points[0] + b1 * points[1] + b2 * points[2] + b3 * points[3];
+
+			return p;
+		};
+
+		for (int i = 0; i <= this->quality; i++) {
+			float t = static_cast<float>(i) / this->quality;
+			auto vertex = func(t);
+			Vertices.push_back(vertex);
+			vertices.push_back(vertex.x);
+			vertices.push_back(vertex.y);
+			vertices.push_back(vertex.z);
+		}
+
+		glGenVertexArrays(1, &VAO);
+		glBindVertexArray(VAO);
+
+		glGenBuffers(1, &VBO);
+		glBindBuffer(GL_ARRAY_BUFFER, VBO);
+		glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+		glEnableVertexAttribArray(0);
+	}
+
+	~Curve() {
+		glDeleteVertexArrays(1, &VAO);
+		glDeleteBuffers(1, &VAO);
+		glDeleteBuffers(1, &VBO);
+	}
+
+	void draw(const glm::mat4& projection, const glm::mat4& view) {
+		glm::mat4 transform = glm::mat4(1.f);
+		
+		glLineWidth(3.f);
+		shader.use();
+		shader.setMat4("model", transform);
+		shader.setMat4("view", view);
+		shader.setMat4("projection", projection);
+		glBindVertexArray(VAO);
+		glDrawArrays(GL_LINES, 0, vertices.size() * sizeof(float));
+	}
+
+	
+};
 //Additional classes **********************************************************************************************
 
 
@@ -313,18 +385,23 @@ public:
 Camera camera = Camera(glm::vec3(0.f, 1.f, 10.f));
 bool firstMouse = true;
 float lastX = SRC_WIDTH / 2.f, lastY = SRC_HEIGHT / 2.f;
-
+bool isMovfingFigure = false;
 
 struct FObj {
+	float t;
+	int pos;
 	Cube* cube;
 	LightCube* lightCube;
 	BezierFigure* BezierFigure1;
 	BezierFigure* BezierFigure2;
+	Curve* curve;
+
 	~FObj() {
 		delete cube;
 		delete lightCube;
 		delete BezierFigure1;
 		delete BezierFigure2;
+		delete curve;
 	}
 };
 
@@ -380,21 +457,45 @@ FObj* MainEngine::start() {
 		glm::vec3(0.f, 0.f, 25.f),
 	};
 	auto light = new LightCube;
-	return new FObj {
+	auto obj = new FObj{
+		0.f,
+		0,
 		new Cube(light),
 		light,
 		new BezierFigure(points1, 100),
 		new BezierFigure(points2, 100),
+		new Curve(10000),
 	};
+	return obj;
 }
 
-void MainEngine::update() {
+void MainEngine::update(double deltaTime) {
 	const glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SRC_WIDTH / (float)SRC_HEIGHT, 0.1f, 100.0f);
 	const glm::mat4 view = camera.GetViewMatrix();
 	obj->lightCube->draw(projection, view);
 	// obj->cube->draw(projection, view);
 	obj->BezierFigure1->draw(projection, view, obj->lightCube->getPos());
 	obj->BezierFigure2->draw(projection, view, obj->lightCube->getPos());
+	obj->curve->draw(projection, view);
+	
+	if (isMovfingFigure) {
+		glm::vec3 pos;
+		if(obj->BezierFigure1->getPos() == obj->curve->getLastPos()) {
+			pos = glm::vec3(0.f);
+			obj->BezierFigure1->setPos(pos);
+			obj->BezierFigure2->setPos(pos);
+			obj->pos = 0;
+			return;
+		}
+		if (obj->t > 0.002f) {
+			obj->pos++;
+			obj->BezierFigure1->setPos(obj->curve->Vertices[obj->pos]);
+			obj->BezierFigure2->setPos(obj->curve->Vertices[obj->pos]);
+			obj->t = 0.f;
+		}
+		else obj->t += deltaTime;
+		
+	}
 }
 
 void MainEngine::clearObj() {
@@ -438,4 +539,7 @@ void MainEngine::processInput(GLFWwindow* window, double deltaTime) const {
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) camera.ProcessKeyboard(BACKWARD, deltaTime);
 	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) camera.ProcessKeyboard(LEFT, deltaTime);
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) camera.ProcessKeyboard(RIGHT, deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) isMovfingFigure = !isMovfingFigure;
+		
+	
 }
